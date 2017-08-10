@@ -101,14 +101,14 @@ def get_capabilities(args):
     # submodels as mode,revision/submodule,revision
     #  e.g.          Cisco-IOS-XE-native,2017-05-30/Cisco-IOS-XE-interfaces,2017-05-31
     #url = '/restconf/data?fields=ietf-yang-library:modules-state/module(name;revision)'
-    url = '/restconf/data?fields=ietf-yang-library:modules-state/module(name;revision;submodule/name)'
+    url = '/restconf/data/ietf-yang-library:modules-state/module?fields=name;revision;submodule/name'
 
 
     response = run_request(args, url)
     models = [ '{},{}'.format(model['name'], model['revision'])
-               for model in response.json()['ietf-yang-library:modules-state']['module']]
+               for model in response.json()['ietf-yang-library:module']]
     submodels = ['{},{}/{},{}'.format(model['name'],model['revision'],submodel['name'], submodel['revision'])
-              for model in response.json()['ietf-yang-library:modules-state']['module'] if 'submodule' in model
+              for model in response.json()['ietf-yang-library:module'] if 'submodule' in model
               for submodel in model['submodule']]
     models.extend(submodels)
     return ('\n'.join(models))
