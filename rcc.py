@@ -29,8 +29,34 @@ def print_response(response, doyaml):
         else:
             print (json.dumps(response.json(),indent=2))
 
+def explore_all(args, filter):
+    capabilities = get_capabilities(args)
+    count = len(capabilities.split('n'))
+    logger.info("Total files {}".format(count))
+    repos = pyang.FileRepository(MODELS, no_path_recurse=False)
+    ctx = pyang.Context(repos)
+    modules = []
+    for capability in capabilities.split('\n'):
+        parts = capability.split('/')
+        if len(parts) == 2:
+            target = '{}/{}'.format(MODELS, parts[1])
+        else:
+            target = '{}/{}'.format(MODELS, capability)
+        if  os.path.isfile(target):
+            logger.info('READING {}'.format(capability))
+            with open(target, "r") as f:
+                data = f.read()
+                name = target.split(',')[0]
+                modules.append(ctx.add_module(name, data))
+    pyang_plugin_init()
+    fmts = {}
+    for p in plugin.plugins:
+        p.add_output_format(fmts)
+    emit_obj = fmts['adam-skeleton']
+    emit_obj.emit(ctx, modules, filter)
+
 def explore(data, url):
-    repos = pyang.FileRepository('/tmp/f', no_path_recurse=False)
+    repos = pyang.FileRepository(MODELS, no_path_recurse=False)
     ctx = pyang.Context(repos)
 
     name = url.split('/')[-1]
@@ -41,7 +67,7 @@ def explore(data, url):
     for p in plugin.plugins:
         p.add_output_format(fmts)
     emit_obj = fmts['adam-skeleton']
-    emit_obj.emit(ctx, [module], None)
+    emit_obj.emit(ctx, [module], '')
 
 def run_post(args):
     BASE = 'https://{}:{}{}'.format(args.host, args.port, args.url)
@@ -183,6 +209,8 @@ if __name__ == "__main__":
                         help="print the response as YAML")
     parser.add_argument('--explore', action='store_true',
                         help="explore other API calls")
+    parser.add_argument('--explore_all', type=str,
+                        help="explore  API calls")
     parser.add_argument('--download', type=str,
                         help="download a model ")
     parser.add_argument('--download_all', action='store_true',
@@ -204,6 +232,9 @@ if __name__ == "__main__":
         sys.exit(0)
 
 
+    if args.explore_all:
+        response = explore_all(args,args.explore_all)
+        sys.exit(0)
 
     if args.download:
         response = download(args, args.download)

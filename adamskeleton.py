@@ -65,10 +65,11 @@ class AdamRestPlugin(plugin.PyangPlugin):
             "notification": self.adam_ignore
         }
         for yam in modules:
-            self.adam_process_children(yam,  '/' + yam.arg + ':' , yam.arg)
+            #self.adam_process_children(yam,  '/' + yam.arg + ':' , yam.arg)
+            self.adam_process_children(yam, '/' + yam.arg + ':', fd)
 
             for augmentation in  yam.search('augment'):
-                self.process_augmentation(augmentation, yam.i_prefixes)
+                self.process_augmentation(augmentation, yam.i_prefixes, fd)
 
     def print_it(self, node, path, module_name):
         if node.i_config:
@@ -82,17 +83,28 @@ class AdamRestPlugin(plugin.PyangPlugin):
             line = path
         else:
             line = path + '/' + node.arg
-        print mode + ' ' + line
 
-    def process_augmentation(self, node, prefix_map):
+        if module_name in line:
+            print mode + ' ' + line
+        else:
+            pass
+            #print "skipping", line
+
+    def process_augmentation(self, node, prefix_map, filter):
         path = node.arg
-        prefixes = set([p.split(':')[0] for p in path.split('/')])
+        #prefixes = set([p.split(':')[0] for p in path.split('/')])
+        prefixes = set([p.split(':')[0] for p in path.split('/') if ':' in p])
         for prefix in prefixes:
             if prefix:
-                replace = prefix_map[prefix][0]
-                path = path.replace(prefix, replace)
+                try:
+                    replace = prefix_map[prefix][0]
+                    path = path.replace(prefix, replace)
+                except KeyError:
+                    print "PathL ERROR", path
 
-        self.adam_process_children(node, path, node.arg)
+
+        #self.adam_process_children(node, path, node.arg)
+        self.adam_process_children(node, path, filter)
 
     def adam_process_children(self, node, path, module):
         for ch in node.i_children:
@@ -110,8 +122,13 @@ class AdamRestPlugin(plugin.PyangPlugin):
 
     def adam_list(self, node, path, module):
         path += '/' + node.arg
+        # this is only required if config
         if node.search_one('key') is not None:
             keystr = "=[%s]" % re.sub('\s+', ' ', node.search_one('key').arg)
+        elif node.i_config:
+            raise ValueError("Config list without key")
+        else:
+            keystr = ""
         path += keystr
         self.print_it(node, path, module)
         self.adam_process_children(node, path, module)
