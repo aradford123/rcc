@@ -17,7 +17,7 @@ from adamskeleton import pyang_plugin_init
 MODELS="models"
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-logger = logging.getLogger('rcc')
+# = logging.getLogger('rcc')
 
 
 def print_response(response, doyaml):
@@ -32,7 +32,7 @@ def print_response(response, doyaml):
 def explore_all(args, filter):
     capabilities = get_capabilities(args)
     count = len(capabilities.split('n'))
-    logger.info("Total files {}".format(count))
+    logging.info("Total files {}".format(count))
     repos = pyang.FileRepository(MODELS, no_path_recurse=False)
     ctx = pyang.Context(repos)
     modules = []
@@ -43,7 +43,7 @@ def explore_all(args, filter):
         else:
             target = '{}/{}'.format(MODELS, capability)
         if  os.path.isfile(target):
-            logger.info('READING {}'.format(capability))
+            logging.info('READING {}'.format(capability))
             with open(target, "r") as f:
                 data = f.read()
                 name = target.split(',')[0]
@@ -71,16 +71,17 @@ def explore(data, url):
 
 def run_post(args):
     BASE = 'https://{}:{}{}'.format(args.host, args.port, args.url)
-    # print ('Request:{}'.format(BASE))
-    headers = {'content-type': 'application/yang-data+json'}
+    logging.info('requesting URL {}'.format(BASE))
 
+    headers = {'content-type': 'application/yang-data+json'}
+    logging.info('requesting headers {}'.format(headers))
     # autodetect json or yaml
     with open(args.body) as config_data:
         if 'yaml' in args.body:
             body = yaml.load(config_data)
         else:
             body = json.load(config_data)
-
+    logging.info('body:{}'.format(json.dumps(body)))
     response = requests.post(url=BASE,
                             headers=headers,
                             data = json.dumps(body),
@@ -95,9 +96,10 @@ def run_post(args):
 
 def run_delete(args, url):
     BASE = 'https://{}:{}{}'.format(args.host, args.port, url)
-    # print ('Request:{}'.format(BASE))
-    headers = {'accept': 'application/yang-data+json'}
+    logging.info('requesting URL {}'.format(BASE))
 
+    headers = {'accept': 'application/yang-data+json'}
+    logging.info('requesting headers {}'.format(headers))
     response = requests.delete(url=BASE,
                             headers=headers,
                             auth=HTTPBasicAuth(args.username, args.password),
@@ -110,8 +112,10 @@ def run_delete(args, url):
 
 def run_request(args, url):
     BASE = 'https://{}:{}{}'.format(args.host, args.port, url)
-    #print ('Request:{}'.format(BASE))
+    logging.info('requesting URL {}'.format(BASE))
+
     headers={'accept':'application/yang-data+json'}
+    logging.info('requesting headers {}'.format(headers))
 
     response = requests.get(url=BASE,
                                 headers=headers,
@@ -162,7 +166,7 @@ def download_all(args):
 
     capabilities = get_capabilities(args)
     count = len(capabilities.split('n'))
-    logger.info("Total files {}".format(count))
+    logging.info("Total files {}".format(count))
 
     updated = 0
     for capability in capabilities.split('\n'):
@@ -172,21 +176,18 @@ def download_all(args):
         else:
             target = '{}/{}'.format(MODELS, capability)
         if not os.path.isfile(target):
-            logger.info('Downloading {}'.format(capability))
+            logging.info('Downloading {}'.format(capability))
             response = download(args,capability)
             updated +=1
             if response.headers['Content-Type'] == 'application/yang':
-
+                logging.info('saving model {}'.format(capability))
                 with open(target, "w") as f:
                     f.write(response.text)
 
-    logger.info('Updated {}'.format(updated))
+    logging.info('Updated {}'.format(updated))
 
 if __name__ == "__main__":
-    hdlr = logging.StreamHandler()
-    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-    hdlr.setFormatter(formatter)
-    logger.addHandler(hdlr)
+
 
     parser = ArgumentParser(description='Select your RESTCONF operation and parameters: url')
     parser.add_argument('--host', type=str, default='127.0.0.1',
@@ -222,9 +223,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     if args.verbose:
-
-
-        logger.setLevel(logging.INFO)
+        logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
+        logging.info("Verbose Logging enabled")
 
     if args.capabilities:
         capability_list = get_capabilities(args)
@@ -252,7 +252,7 @@ if __name__ == "__main__":
 
     if args.op == "DELETE":
         try:
-            response = run_delete(args)
+            response = run_delete(args, args.url)
             print ('status:',response.status_code)
         except requests.exceptions.HTTPError as e:
             print (e)

@@ -69,7 +69,7 @@ ro /ietf-interfaces:interfaces-state/interface=[name]
 ````
 
 ### Make a request
-
+The response will be JSON by default.
 ```buildoutcfg
 $ ./rcc.py --host adam-csr --url /restconf/data/interfaces
 {
@@ -109,7 +109,7 @@ $ ./rcc.py --host adam-csr --url /restconf/data/interfaces
 ```
 
 ### Yaml format
-
+There is also the ```--yaml``` option to get YAML returned.
 ```buildoutcfg
 $ ./rcc.py --host adam-csr --url /restconf/data/interfaces  --yaml
 ietf-interfaces:interfaces:
@@ -143,6 +143,12 @@ Paste the following lines in your shell
 ```buildoutcfg
 export RCC_USERNAME=user
 export RCC_PASSWORD=password
-
 ```
+
+## TODO
+- PUT/PATCH
+- implement --explore-all  combine all models, then filter on a path
+- snippets for POST/PUT/PATCH
+- Logging
+- Python3
 

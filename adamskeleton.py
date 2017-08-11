@@ -24,10 +24,11 @@ document containing sample elements for all data nodes.
 * Leaf, leaf-list and anyxml elements are empty (exception:
   --sample-xml-skeleton-defaults option).
 """
+from __future__ import print_function
 import re
-
 from pyang import plugin, statements, error
 from pyang.util import unique_prefixes
+import logging
 
 def pyang_plugin_init():
     plugin.register_plugin(AdamRestPlugin())
@@ -65,6 +66,7 @@ class AdamRestPlugin(plugin.PyangPlugin):
             "notification": self.adam_ignore
         }
         for yam in modules:
+            logging.info("Processing {}".format(yam.arg))
             #self.adam_process_children(yam,  '/' + yam.arg + ':' , yam.arg)
             self.adam_process_children(yam, '/' + yam.arg + ':', fd)
 
@@ -85,7 +87,7 @@ class AdamRestPlugin(plugin.PyangPlugin):
             line = path + '/' + node.arg
 
         if module_name in line:
-            print mode + ' ' + line
+            print (mode + ' ' + line)
         else:
             pass
             #print "skipping", line
@@ -93,6 +95,7 @@ class AdamRestPlugin(plugin.PyangPlugin):
     def process_augmentation(self, node, prefix_map, filter):
         path = node.arg
         #prefixes = set([p.split(':')[0] for p in path.split('/')])
+        # do not try to sub a prefix unless it exists pref:path
         prefixes = set([p.split(':')[0] for p in path.split('/') if ':' in p])
         for prefix in prefixes:
             if prefix:
@@ -100,7 +103,7 @@ class AdamRestPlugin(plugin.PyangPlugin):
                     replace = prefix_map[prefix][0]
                     path = path.replace(prefix, replace)
                 except KeyError:
-                    print "PathL ERROR", path
+                    print ("prefix ERROR", path)
 
 
         #self.adam_process_children(node, path, node.arg)
