@@ -44,7 +44,7 @@ class AdamRestPlugin(plugin.PyangPlugin):
     def setup_fmt(self, ctx):
         pass
 
-    def emit(self, ctx, modules, fd):
+    def emit(self, ctx, modules, filter, maxdepth):
         """Main control function.
         """
 
@@ -68,12 +68,12 @@ class AdamRestPlugin(plugin.PyangPlugin):
         for yam in modules:
             logging.info("Processing {}".format(yam.arg))
             #self.adam_process_children(yam,  '/' + yam.arg + ':' , yam.arg)
-            self.adam_process_children(yam, '/' + yam.arg + ':', fd)
+            self.adam_process_children(yam, '/' + yam.arg + ':', filter, maxdepth, 1)
 
             for augmentation in  yam.search('augment'):
-                self.process_augmentation(augmentation, yam.i_prefixes, fd)
+                self.process_augmentation(augmentation, yam.i_prefixes, filter, maxdepth, 1)
 
-    def print_it(self, node, path, module_name):
+    def print_it(self, node, path, module_name, maxdepth, depth):
         if node.i_config:
             mode = 'rw'
         else:
@@ -92,7 +92,7 @@ class AdamRestPlugin(plugin.PyangPlugin):
             pass
             #print "skipping", line
 
-    def process_augmentation(self, node, prefix_map, filter):
+    def process_augmentation(self, node, prefix_map, filter, maxdepth, depth):
         path = node.arg
         #prefixes = set([p.split(':')[0] for p in path.split('/')])
         # do not try to sub a prefix unless it exists pref:path
@@ -107,23 +107,23 @@ class AdamRestPlugin(plugin.PyangPlugin):
 
 
         #self.adam_process_children(node, path, node.arg)
-        self.adam_process_children(node, path, filter)
+        self.adam_process_children(node, path, filter, maxdepth, depth)
 
-    def adam_process_children(self, node, path, module):
+    def adam_process_children(self, node, path, filter, maxdepth, depth):
         for ch in node.i_children:
             if ch.i_config or self.doctype == "data":
-                self.adam_node_handler[ch.keyword](ch,path, module)
+                self.adam_node_handler[ch.keyword](ch, path, filter, maxdepth, depth)
 
-    def adam_container(self,node, path, module):
-        self.print_it(node, path, module)
+    def adam_container(self, node, path, filter, maxdepth, depth):
+        self.print_it(node, path, filter, maxdepth, depth)
         if path.endswith(':'):
             path = path + node.arg
         else:
             path = path + '/' + node.arg
 
-        self.adam_process_children(node,path, module)
+        self.adam_process_children(node, path, filter, maxdepth, depth)
 
-    def adam_list(self, node, path, module):
+    def adam_list(self, node, path, filter, maxdepth, depth):
         path += '/' + node.arg
         # this is only required if config
         if node.search_one('key') is not None:
@@ -133,16 +133,16 @@ class AdamRestPlugin(plugin.PyangPlugin):
         else:
             keystr = ""
         path += keystr
-        self.print_it(node, path, module)
-        self.adam_process_children(node, path, module)
+        self.print_it(node, path, filter, maxdepth, depth)
+        self.adam_process_children(node, path, filter, maxdepth, depth)
 
-    def adam_leaf_list(self, node, path, module):
+    def adam_leaf_list(self, node, path, filter, maxdepth, depth):
         #print "leaflist"
-        self.print_it(node, path + '/' + node.arg, module)
+        self.print_it(node, path + '/' + node.arg, filter, maxdepth, depth)
 
-    def adam_leaf(self, node, path, module):
+    def adam_leaf(self, node, path, filter, maxdepth, depth):
         pass
-    def adam_anyxml(self,node, path, module):
+    def adam_anyxml(self,node, path, filter, maxdepth, depth):
         pass
-    def adam_ignore(self, node, path, module):
+    def adam_ignore(self, node, path, filter, maxdepth, depth):
         pass

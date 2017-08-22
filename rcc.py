@@ -53,7 +53,7 @@ def explore_all(args, filter):
     for p in plugin.plugins:
         p.add_output_format(fmts)
     emit_obj = fmts['adam-skeleton']
-    emit_obj.emit(ctx, modules, filter)
+    emit_obj.emit(ctx, modules, filter, 10)
 
 def explore(data, url):
     repos = pyang.FileRepository(MODELS, no_path_recurse=False)
@@ -67,11 +67,11 @@ def explore(data, url):
     for p in plugin.plugins:
         p.add_output_format(fmts)
     emit_obj = fmts['adam-skeleton']
-    emit_obj.emit(ctx, [module], '')
+    emit_obj.emit(ctx, [module], '', 10)
 
 def run_post(args):
     BASE = 'https://{}:{}{}'.format(args.host, args.port, args.url)
-    logging.info('requesting URL {}'.format(BASE))
+    logging.info('POST URL {}'.format(BASE))
 
     headers = {'content-type': 'application/yang-data+json'}
     logging.info('requesting headers {}'.format(headers))
@@ -94,9 +94,59 @@ def run_post(args):
     response.raise_for_status()
     return response
 
+def run_put(args):
+    BASE = 'https://{}:{}{}'.format(args.host, args.port, args.url)
+    logging.info('PUT URL {}'.format(BASE))
+
+    headers = {'content-type': 'application/yang-data+json'}
+    logging.info('requesting headers {}'.format(headers))
+    # autodetect json or yaml
+    with open(args.body) as config_data:
+        if 'yaml' in args.body:
+            body = yaml.load(config_data)
+        else:
+            body = json.load(config_data)
+    logging.info('body:{}'.format(json.dumps(body)))
+    response = requests.put(url=BASE,
+                            headers=headers,
+                            data = json.dumps(body),
+
+                            auth=HTTPBasicAuth(args.username, args.password),
+                            verify=False)
+    if response.status_code == 409:
+        print(json.dumps(response.json(),indent=2))
+
+    response.raise_for_status()
+    return response
+
+def run_patch(args):
+    BASE = 'https://{}:{}{}'.format(args.host, args.port, args.url)
+    logging.info('PUT URL {}'.format(BASE))
+
+    headers = {'content-type': 'application/yang-data+json'}
+    logging.info('requesting headers {}'.format(headers))
+    # autodetect json or yaml
+    with open(args.body) as config_data:
+        if 'yaml' in args.body:
+            body = yaml.load(config_data)
+        else:
+            body = json.load(config_data)
+    logging.info('body:{}'.format(json.dumps(body)))
+    response = requests.patch(url=BASE,
+                            headers=headers,
+                            data = json.dumps(body),
+
+                            auth=HTTPBasicAuth(args.username, args.password),
+                            verify=False)
+    if response.status_code == 409:
+        print(json.dumps(response.json(),indent=2))
+
+    response.raise_for_status()
+    return response
+
 def run_delete(args, url):
     BASE = 'https://{}:{}{}'.format(args.host, args.port, url)
-    logging.info('requesting URL {}'.format(BASE))
+    logging.info('DELETE URL {}'.format(BASE))
 
     headers = {'accept': 'application/yang-data+json'}
     logging.info('requesting headers {}'.format(headers))
@@ -260,6 +310,18 @@ if __name__ == "__main__":
         try:
             response  = run_post(args)
             print("Status",response.status_code)
+        except requests.exceptions.HTTPError as e:
+            print("Caught", e)
+    if args.op == "PUT":
+        try:
+            response = run_put(args)
+            print("Status", response.status_code)
+        except requests.exceptions.HTTPError as e:
+            print("Caught", e)
+    if args.op == "PATCH":
+        try:
+            response = run_patch(args)
+            print("Status", response.status_code)
         except requests.exceptions.HTTPError as e:
             print("Caught", e)
 
